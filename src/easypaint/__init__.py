@@ -1,0 +1,1 @@
+from .easypaint import EasyPaint
