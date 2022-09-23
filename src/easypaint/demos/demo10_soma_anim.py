@@ -95,9 +95,9 @@ class SomaAnim(EasyPaint):
             self.after(0, lambda: anim(step, max_step))
 
         self.easypaint_configure(title='Soma cube - Animated solution',
-                                  background='lightblue',
-                                  size=(501, 401),
-                                  coordinates=(-500, -400, 500, 400))
+                                 background='lightblue',
+                                 size=(501, 401),
+                                 coordinates=(-500, -400, 500, 400))
         self.create_text(0, -390, "Press 'Return' or 'Escape' to exit", 10, 'S', 'blue')
 
         f = self.build()

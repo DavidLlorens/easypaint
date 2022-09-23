@@ -16,9 +16,9 @@ class Demo1(EasyPaint):
     def main(self):
         x1, y1, x2, y2 = (0, 0, 399, 399)
         self.easypaint_configure(title='Demo 0 - Window size and window coordinates',
-                                  background='white',
-                                  size=(400, 400),
-                                  coordinates=(x1, y1, x2, y2))
+                                 background='white',
+                                 size=(400, 400),
+                                 coordinates=(x1, y1, x2, y2))
         print(self.scale, self.size, self.coordinates)
 
         c = 'red'

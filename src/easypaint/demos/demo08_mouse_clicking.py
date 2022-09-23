@@ -25,9 +25,9 @@ class Demo8(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 8 - Uso de los botones del ratón',
-                                  background='white',
-                                  size=(600, 600),
-                                  coordinates=(0, 0, 599, 599))
+                                 background='white',
+                                 size=(600, 600),
+                                 coordinates=(0, 0, 599, 599))
         self.create_text(300, 290, "Botón izq.: dibuja círculo", 8, 'c')
         self.create_text(300, 310, "Botón der.: termina programa", 8, 'c')
 

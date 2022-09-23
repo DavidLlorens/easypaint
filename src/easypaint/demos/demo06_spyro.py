@@ -112,9 +112,9 @@ class Demo6(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 6 - Spyro',
-                                  background='white',
-                                  size=(600, 600),
-                                  coordinates=(-250, -250, 250, 250))
+                                 background='white',
+                                 size=(600, 600),
+                                 coordinates=(-250, -250, 250, 250))
         self.spyro(self.radioCirculo, self.radioDisco, self.distLapizCentroDisco, self.dientesCirculo)
 
         self.create_text(0, -250, "Press any key to exit", 12, 's')

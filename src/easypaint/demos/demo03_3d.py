@@ -59,9 +59,9 @@ class Demo3(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 3 - Paseo 3D',
-                                  background='steelblue',
-                                  size=(600, 600),
-                                  coordinates=(-500, -500, 500, 500))
+                                 background='steelblue',
+                                 size=(600, 600),
+                                 coordinates=(-500, -500, 500, 500))
         for x, y, z in [(1000, 1000, 1000), (1000, 1000, -1000),
                         (1000, -1000, 1000), (1000, -1000, -1000),
                         (-1000, 1000, 1000), (-1000, 1000, -1000),

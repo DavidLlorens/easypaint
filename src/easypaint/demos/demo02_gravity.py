@@ -62,9 +62,9 @@ class Demo2(EasyPaint):
     def main(self):
         t = 400
         self.easypaint_configure(title='Demo 2 - Caos gravitatorio',
-                                  background='black',
-                                  size=(600, 600),
-                                  coordinates=(-t, -t, t, t))
+                                 background='black',
+                                 size=(600, 600),
+                                 coordinates=(-t, -t, t, t))
 
         # Si quieres añadir mas planetas, adelante...
         self.planets.append(Planeta(-200.0, -200.0, 0.1, 0.0, 20.0, 'red'))

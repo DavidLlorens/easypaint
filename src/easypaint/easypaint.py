@@ -1,5 +1,8 @@
 """
-2022/09/01 - 1.0 - Biblioteca para crear ventanas con un lienzo.
+2022/09/22 - 1.0.4 - Corregido create_filled_polygon(...)
+2022/09/22 - 1.0.3 - Añade create_filled_polygon(...)
+2022/09/22 - 1.0.2 - Añade create_polygon(...)
+2022/09/01 - 1.0.1 - Biblioteca para crear ventanas con un lienzo.
 
 @author: David Llorens
 @contact: dllorens@uji.es
@@ -11,14 +14,12 @@ import tkinter
 from abc import ABC, abstractmethod
 from typing import *
 
+
 class EasyPaintException(Exception):
-    def __init__(self, message, value):
+    def __init__(self, message, value=None):
         self.value = value
         self.message = message
         super().__init__(self.message)
-
-    def __str__(self):
-        return f'{self.value} -> {self.message}'
 
 
 class EasyPaint(ABC):
@@ -43,7 +44,7 @@ class EasyPaint(ABC):
     def size(self, value):
         self._width, self._height = value
         self._left, self._bottom, self._right, self._top = (0, 0, self.size[0] - 1, self.size[1] - 1)
-        if hasattr(self,'_canvas'):
+        if hasattr(self, '_canvas'):
             self.erase()
             canvas_args = {"width": self._width, "height": self._height}
             self._canvas.configure(**canvas_args)
@@ -121,9 +122,9 @@ class EasyPaint(ABC):
         self._canvas.bind('<Leave>', self.on_mouse_leave)
 
     def easypaint_configure(self, size: Tuple[int, int],
-                             coordinates: Optional[Tuple[float, float, float, float]] = None,
-                             title: Optional[str] = 'EasyPaint',
-                             background: Optional[str] = 'white'):
+                            coordinates: Optional[Tuple[float, float, float, float]] = None,
+                            title: Optional[str] = 'EasyPaint',
+                            background: Optional[str] = 'white'):
         """Configure the window
 
         Arguments:
@@ -138,14 +139,10 @@ class EasyPaint(ABC):
         if self.closing: return
         self.erase()
 
-        size_ok = False
-        try:
-            if len(size) == 2 and size[0] > 0 and size[1] > 0:
-                size_ok = True
-        except:
-            raise EasyPaintException(f"Parameter 'size' must be a tuple of two ints greater than 0, not {size}")
-        if not size_ok:
-            raise EasyPaintException(f"Parameter 'size' must be a tuple of two ints greater than 0, not {size}")
+        if not (isinstance(size, tuple) and len(size) == 2 and isinstance(size[0], int) and isinstance(size[1], int) and
+                size[0] > 0 and size[1] > 0):
+            raise EasyPaintException(
+                "easypaint_configure: Parameter 'size' must be a tuple of two integers greater than 0")
 
         self.size = size
         if coordinates is not None:
@@ -176,6 +173,12 @@ class EasyPaint(ABC):
         xb = int((x - self._left) * self._xscale)
         yb = int((self._top - y) * self._yscale)
         return xb, yb
+
+    def _transform_x(self, x, ):
+        return int((x - self._left) * self._xscale)
+
+    def _transform_y(self, y):
+        return int((self._top - y) * self._yscale)
 
     def _on_mouse_release(self, event):
         if self.closing: return
@@ -235,9 +238,10 @@ class EasyPaint(ABC):
             color -- color name (default is 'black')
 
         Returns:
-            A number (identifier). You can use this 'id' to move o delete the point: erase(id)
+            A number (identifier). You can use this 'id' to move or delete the rectangle: erase(id)
         """
         if self.closing: return
+        fn = 'create_rectangle' if fill is None else 'create_filled_rectangle'
         args['outline'] = color[:]
         if fill is not None: args['fill'] = fill[:]
         try:
@@ -248,15 +252,12 @@ class EasyPaint(ABC):
             if y2b < y1b:
                 y1b, y2b = y2b, y1b
         except:
-            raise EasyPaintException("Wrong coordinates", (x1, y1, x2, y2))
+            raise EasyPaintException(f"Wrong coordinates in {fn}: {(x1, y1, x2, y2)}")
 
         try:
             return self._canvas.create_rectangle(*(x1b, y1b, x2b, y2b), **args)
         except:
-            if fill is not None:
-                raise EasyPaintException("create_filled_rectangle", (x1, y1, x2, y2, color, fill))
-            else:
-                raise EasyPaintException("create_rectangle", (x1, y1, x2, y2, color))
+            raise EasyPaintException(f"{fn}")
 
     def create_filled_rectangle(self, x1: float, y1: float, x2: float, y2: float, color: str = 'black', fill=None,
                                 **args):
@@ -272,7 +273,7 @@ class EasyPaint(ABC):
             fill -- color name (default is 'black')
 
         Returns:
-            A number (identifier). You can use this 'id' to move o delete the point: erase(id)
+            A number (identifier). You can use this 'id' to move or delete the rectangle: erase(id)
         """
         if self.closing: return
         if fill is None: fill = color
@@ -289,7 +290,7 @@ class EasyPaint(ABC):
             color -- color name (default is 'black')
 
         Returns:
-            A number (identifier). You can use this 'id' to move o delete the point: erase(id)
+            A number (identifier). You can use this 'id' to move or delete the circle: erase(id)
         """
         if self.closing: return
         fn = 'create_circle' if fill is None else 'create_filled_circle'
@@ -299,14 +300,11 @@ class EasyPaint(ABC):
             x1b, y1b = self._transform(x - radius, y - radius)
             x2b, y2b = self._transform(x + radius, y + radius)
         except:
-            raise EasyPaintException(f"{fn} wrong coordinates", (x, y))
+            raise EasyPaintException(f"Wrong coordinates in {fn}: {(x, y)}")
         try:
             return self._canvas.create_oval(*(x1b, y1b, x2b, y2b), **args)
         except:
-            if fn == 'create_circle':
-                raise EasyPaintException(f"{fn}", (x, y, radius, color))
-            else:
-                raise EasyPaintException(f"{fn}", (x, y, radius, color, fill))
+            raise EasyPaintException(f"{fn}")
 
     def create_filled_circle(self, x: float, y: float, radius: float, color='black', fill=None, **args):
         """Draws a filled circle
@@ -321,11 +319,50 @@ class EasyPaint(ABC):
             fill -- color name (default is 'black')
 
         Returns:
-            A number (identifier). You can use this 'id' to move o delete the point: erase(id)
+            A number (identifier). You can use this 'id' to move or delete the circle: erase(id)
         """
         if self.closing: return
         if fill is None: fill = color
         return self.create_circle(x, y, radius, color, fill, **args)
+
+    def create_polygon(self, *params, color: str = 'black', fill: str = None, **args):
+        """Draws a polygon
+
+        Arguments:
+            x0, y0, x1, y1, ...  -- point coordinates
+
+            color -- outline color name (default is 'black')
+
+        Returns:
+            A number (identifier). You can use this 'id' to move or delete the polygon: erase(id)
+        """
+        if self.closing: return
+        args['fill'] = '' if fill is None else fill
+        args['outline'] = color
+        try:
+            params2 = [self._transform_x(e) if i % 2 == 0 else self._transform_y(e) for i, e in enumerate(params)]
+        except:
+            raise EasyPaintException(f"Wrong coordinates in create_polygon: {params}")
+        try:
+            return self._canvas.create_polygon(*params2, **args)
+        except Exception as e:
+            raise EasyPaintException(f"create_polygon: {e}")
+
+    def create_filled_polygon(self, *params, color: str = 'black', fill: str = None, **args):
+        """Draws a filled polygon
+
+        Arguments:
+            x0, y0, x1, y1, ...  -- point coordinates
+
+            color -- outline color name (default is 'black')
+
+            fill -- color name (default is 'black')
+
+        Returns:
+            A number (identifier). You can use this 'id' to move or delete the polygon: erase(id)
+        """
+        if self.closing: return
+        return self.create_polygon(*params, color=color, fill=color, **args)
 
     def create_point(self, x: float, y: float, color: str = 'black', **args):
         """Draws a point
@@ -345,11 +382,11 @@ class EasyPaint(ABC):
             x1b, y1b = self._transform(x, y)
             x2b = x1b + 2
         except:
-            raise EasyPaintException("coordenadaserroneas", (x, y))
+            raise EasyPaintException(f"Wrong coordinates in create_point: {(x, y)}")
         try:
             return self._canvas.create_line(*(x1b, y1b, x2b, y1b), **args)
         except:
-            raise EasyPaintException("puntoError", (x, y, color))
+            raise EasyPaintException("create_point")
 
     def create_line(self, x1: float, y1: float, x2: float, y2: float, color: str = 'black', **args):
         """Draws a line between two points
@@ -360,7 +397,7 @@ class EasyPaint(ABC):
             color -- color name (default is 'black')
 
         Returns:
-            A number (identifier). You can use this 'id' to move o delete the line
+            A number (identifier). You can use this 'id' to move or delete the line
         """
         if self.closing: return
         args['fill'] = color
@@ -368,12 +405,12 @@ class EasyPaint(ABC):
             x1b, y1b = self._transform(x1, y1)
             x2b, y2b = self._transform(x2, y2)
         except:
-            raise EasyPaintException("coordenadaserroneas", (x1, y1, x2, y2))
+            raise EasyPaintException(f"Wrong coordinates in create_line: {(x1, y1, x2, y2)}")
         try:
             # id = self.canvas.create_line(x1b, y1b, x2b, y2b, args.copy())
             return self._canvas.create_line(*(x1b, y1b, x2b, y2b), **args)
         except:
-            raise EasyPaintException("lineaError", (x1, y1, x2, y2, color))
+            raise EasyPaintException("create_line")
 
     def create_text(self, x: float, y: float, text: str, font_size: int = 10,
                     anchor: str = 'center', color: str = 'black', justify: str = "left", **args):
@@ -393,7 +430,7 @@ class EasyPaint(ABC):
             justify -- string (default is 'left')
 
         Returns:
-            A number (identifier). You can use this 'id' to move o delete the point: erase(id)
+            A number (identifier). You can use this 'id' to move or delete the text: erase(id)
         """
         if self.closing: return
         args['text'] = text
@@ -404,12 +441,12 @@ class EasyPaint(ABC):
         try:
             xb, yb = self._transform(x, y)
         except:
-            raise EasyPaintException("coordenadaserroneas", (x, y))
+            raise EasyPaintException(f"Wrong coordinates in create_text: {(x, y)}")
         try:
             # return self.canvas.create_text(xb, yb, args)
             return self._canvas.create_text(*(xb, yb), **args)
         except:
-            raise EasyPaintException("textoError", (x, y, text, anchor))
+            raise EasyPaintException("create_text")
 
     def erase(self, param=None):
         """Remove element from canvas
@@ -434,12 +471,12 @@ class EasyPaint(ABC):
                     for elem in param:
                         self._canvas.delete(elem)
                 except:
-                    raise EasyPaintException("indiceBorradoError", param)
+                    raise EasyPaintException(f"Wrong id in erase: {param}")
         else:  # Delete single element
             try:
                 self._canvas.delete(param)
             except:
-                raise EasyPaintException("indiceBorradoError", param)
+                raise EasyPaintException("erase")
 
     def save_eps(self, nombre: str):
         """Print the contents of the canvas to a postscript file.
@@ -466,11 +503,11 @@ class EasyPaint(ABC):
             xb = x * self._xscale
             yb = -y * self._yscale
         except:
-            raise EasyPaintException("move wrong coordinates", (x, y))
+            raise EasyPaintException(f"Wrong coordinates in move: x={x}, y={y}")
         try:
             self._canvas.move(tags, xb, yb)
         except:
-            raise EasyPaintException("move Error", (tags, x, y))
+            raise EasyPaintException("move")
 
     def close(self):
         """Terminates the program
@@ -526,7 +563,7 @@ if __name__ == "__main__":
         def main(self):
             self.easypaint_configure(title='EasyPaint test', size=(600, 600))
             print(self.size, self.coordinates, self.scale)
-            self.create_filled_rectangle(10, 10, 590, 590, "black", "red")
+            self.create_filled_rectangle(10, 10, 590, 590, "black", "white")
             x, y = self.center
             self.create_text(x, y, "To exit press any key\nor\nclose the window", 14, justify="center")
             # self.save_eps("kk.eps")

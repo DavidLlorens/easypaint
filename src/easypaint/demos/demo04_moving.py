@@ -42,9 +42,9 @@ class Demo4(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 4 - Interferencia',
-                                  background='steelblue',
-                                  size=(600, 600),
-                                  coordinates=(0, 0, 1000, 1000))
+                                 background='steelblue',
+                                 size=(600, 600),
+                                 coordinates=(0, 0, 1000, 1000))
         for i in range(1, 16):
             self.create_circle(300, 500, i * 20, 'black', tags='c')
             self.create_circle(700, 500, i * 20, 'black', tags='c2')

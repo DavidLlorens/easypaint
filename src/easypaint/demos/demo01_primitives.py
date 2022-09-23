@@ -19,9 +19,6 @@ class State(Enum):
 class Demo1(EasyPaint):
     state: State = State.ToDelete
 
-    def __init__(self):
-        super().__init__(title='Demo 1 - Funciones predefinidas', size=(501, 501))
-
     def on_key_press(self, keysym):
         if self.state == State.ToDelete:
             self.erase()
@@ -31,6 +28,8 @@ class Demo1(EasyPaint):
             self.close()
 
     def main(self):
+        self.easypaint_configure(title='Demo 1 - Funciones predefinidas',
+                                 size=(501, 501))
         o_ids = []
         # Dibuja matriz de puntos
         for x in range(25, 225, 21):

@@ -35,9 +35,9 @@ class Demo7(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 7 - Dibujando con el ratón',
-                                  background='white',
-                                  size=(600, 600),
-                                  coordinates=(0, 0, 1000, 1000))
+                                 background='white',
+                                 size=(600, 600),
+                                 coordinates=(0, 0, 1000, 1000))
         self.create_text(500, 50, "Dibuja con el botón izquierdo.", 8, 's')
         self.create_text(500, 0, "Termina programa pulsando el boton derecho.", 8, 's')
 

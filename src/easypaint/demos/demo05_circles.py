@@ -37,9 +37,9 @@ class Demo5(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 5 - Círculos aleatorios',
-                                  background='steelblue',
-                                  size=(600, 600),
-                                  coordinates=(0, 0, 1000, 1000))
+                                 background='steelblue',
+                                 size=(600, 600),
+                                 coordinates=(0, 0, 1000, 1000))
 
         self.t_id = self.create_text(500, 0, "Press any key to exit", 12, anchor="s")
         self.after(0, self.animation)
