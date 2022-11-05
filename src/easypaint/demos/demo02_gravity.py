@@ -35,8 +35,21 @@ def gravedad(p1, lp):
 
 
 class Demo2(EasyPaint):
-    planets_ids = []
-    planets = []
+    def __init__(self):
+        t = 400
+        super().__init__(title='Demo 2 - Caos gravitatorio',
+                         background='black',
+                         size=(600, 600),
+                         coordinates=(-t, -t, t, t))
+        self.planets_ids = []
+        self.planets = []
+        # Si quieres añadir mas planetas, adelante...
+        self.planets.append(Planeta(-200.0, -200.0, 0.1, 0.0, 20.0, 'red'))
+        self.planets.append(Planeta(200.0, 200.0, -0.1, 0.0, 20.0, 'magenta'))
+        self.planets.append(Planeta(0.0, 0.0, 0.1, 0.1, 0.01, 'green'))
+        for p in self.planets: self.planets_ids.append(p.dibuja(self))
+        self.create_text(0, -400, "Press any key to exit", 10, 'S', 'white')
+        self.after(0, lambda: self.animation(1000))
 
     def on_key_press(self, keysym):
         self.close()
@@ -58,23 +71,6 @@ class Demo2(EasyPaint):
         self.update()
         if c > 0:
             self.after(5, lambda: self.animation(c - 1))
-
-    def main(self):
-        t = 400
-        self.easypaint_configure(title='Demo 2 - Caos gravitatorio',
-                                 background='black',
-                                 size=(600, 600),
-                                 coordinates=(-t, -t, t, t))
-
-        # Si quieres añadir mas planetas, adelante...
-        self.planets.append(Planeta(-200.0, -200.0, 0.1, 0.0, 20.0, 'red'))
-        self.planets.append(Planeta(200.0, 200.0, -0.1, 0.0, 20.0, 'magenta'))
-        self.planets.append(Planeta(0.0, 0.0, 0.1, 0.1, 0.01, 'green'))
-
-        for p in self.planets: self.planets_ids.append(p.dibuja(self))
-
-        self.create_text(0, -400, "Press any key to exit", 10, 'S', 'white')
-        self.after(0, lambda: self.animation(1000))
 
 
 Demo2().run()

@@ -43,6 +43,17 @@ class Demo6(EasyPaint):
     velocidad = 0.04  # reducir para aumentar velocidad
     dientesCirculo = 40  # no es necesario cambiar este valor
 
+    def __init__(self):
+        super().__init__(title='Demo 6 - Spyro',
+                         background='white',
+                         size=(600, 600),
+                         coordinates=(-250, -250, 250, 250))
+        self.create_text(0, -250, "Press any key to exit", 12, 's')
+        self.spyro(self.radioCirculo, self.radioDisco, self.distLapizCentroDisco, self.dientesCirculo)
+
+    def on_key_press(self, keysym):
+        self.close()
+
     def spyro(self, a, b, rd, di):
         def anim(cc):
             nonlocal ang, theta, x2, y2, xx2, yy2, o_id
@@ -106,18 +117,6 @@ class Demo6(EasyPaint):
             x2, y2 = x, y
         self.erase(self.rold)
         self.rold = r
-
-    def on_key_press(self, keysym):
-        self.close()
-
-    def main(self):
-        self.easypaint_configure(title='Demo 6 - Spyro',
-                                 background='white',
-                                 size=(600, 600),
-                                 coordinates=(-250, -250, 250, 250))
-        self.spyro(self.radioCirculo, self.radioDisco, self.distLapizCentroDisco, self.dientesCirculo)
-
-        self.create_text(0, -250, "Press any key to exit", 12, 's')
 
 
 Demo6().run()

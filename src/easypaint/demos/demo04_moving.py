@@ -18,8 +18,18 @@ class State(Enum):
 
 
 class Demo4(EasyPaint):
-    state: State = State.Initial
-    textId = None
+    def __init__(self):
+        super().__init__(title='Demo 4 - Interferencia',
+                         background='steelblue',
+                         size=(600, 600),
+                         coordinates=(0, 0, 1000, 1000))
+        for i in range(1, 16):
+            self.create_circle(300, 500, i * 20, 'black', tags='c')
+            self.create_circle(700, 500, i * 20, 'black', tags='c2')
+
+        self.state: State = State.Initial
+        self.textId = None
+        self.after(0, lambda: self.animation(400))
 
     def on_key_press(self, keysym):
         if self.state == State.Initial:
@@ -39,17 +49,6 @@ class Demo4(EasyPaint):
         else:
             self.textId = self.create_text(500, 0, "Press any key to delete left circles", 12, 's')
             self.state = State.Delete
-
-    def main(self):
-        self.easypaint_configure(title='Demo 4 - Interferencia',
-                                 background='steelblue',
-                                 size=(600, 600),
-                                 coordinates=(0, 0, 1000, 1000))
-        for i in range(1, 16):
-            self.create_circle(300, 500, i * 20, 'black', tags='c')
-            self.create_circle(700, 500, i * 20, 'black', tags='c2')
-
-        self.after(0, lambda: self.animation(400))
 
 
 Demo4().run()

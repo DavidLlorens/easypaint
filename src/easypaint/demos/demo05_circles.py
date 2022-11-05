@@ -12,9 +12,17 @@ from easypaint import EasyPaint
 
 
 class Demo5(EasyPaint):
-    t_id = None
-    o_ids = []
     colores = ['red', 'green', 'blue', 'yellow', 'orange', 'black', 'pink']
+
+    def __init__(self):
+        super().__init__(title='Demo 5 - Círculos aleatorios',
+                         background='steelblue',
+                         size=(600, 600),
+                         coordinates=(0, 0, 1000, 1000))
+
+        self.t_id = self.create_text(500, 0, "Press any key to exit", 12, anchor="s")
+        self.o_ids = []
+        self.after(0, self.animation)
 
     def dibuja_circulo_azar(self):
         x = randrange(0, 1000)
@@ -33,15 +41,6 @@ class Demo5(EasyPaint):
         self.o_ids.append(self.dibuja_circulo_azar())
         self.tag_raise(self.t_id)
         self.update()
-        self.after(0, self.animation)
-
-    def main(self):
-        self.easypaint_configure(title='Demo 5 - Círculos aleatorios',
-                                 background='steelblue',
-                                 size=(600, 600),
-                                 coordinates=(0, 0, 1000, 1000))
-
-        self.t_id = self.create_text(500, 0, "Press any key to exit", 12, anchor="s")
         self.after(0, self.animation)
 
 

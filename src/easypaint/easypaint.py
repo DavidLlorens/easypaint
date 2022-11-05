@@ -13,7 +13,13 @@
 import tkinter
 from abc import ABC, abstractmethod
 from typing import *
+import platform
 
+if platform.system() == "Windows":
+    import ctypes
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
+SIZE_SCALING = 1.0
 
 class EasyPaintException(Exception):
     def __init__(self, message, value=None):
@@ -25,7 +31,7 @@ class EasyPaintException(Exception):
 class EasyPaint(ABC):
     __slots__ = ('_title', '_background', '_root', '_canvas',
                  '_width', '_height', '_xscale', '_yscale',
-                 '_left', '_right', '_top', '_bottom')
+                 '_left', '_right', '_top', '_bottom', '_closing')
 
     @property
     def title(self):
@@ -38,12 +44,12 @@ class EasyPaint(ABC):
 
     @property
     def size(self):
-        return self._width, self._height
+        return self._width/SIZE_SCALING, self._height/SIZE_SCALING
 
     @size.setter
     def size(self, value):
-        self._width, self._height = value
-        self._left, self._bottom, self._right, self._top = (0, 0, self.size[0] - 1, self.size[1] - 1)
+        self._width, self._height = value[0]*SIZE_SCALING, value[1]*SIZE_SCALING
+        self._left, self._bottom, self._right, self._top = (0, 0, self._width - 1, self._height - 1)
         if hasattr(self, '_canvas'):
             self.erase()
             canvas_args = {"width": self._width, "height": self._height}
@@ -58,7 +64,10 @@ class EasyPaint(ABC):
     def coordinates(self, value):
         if hasattr(self, '_canvas'):
             self.erase()
-        self._left, self._bottom, self._right, self._top = value
+        if value is None:
+            self._left, self._bottom, self._right, self._top = 0, 0, self._width - 1, self._height - 1
+        else:
+            self._left, self._bottom, self._right, self._top = value
         self._set_scale()
 
     @property
@@ -98,30 +107,43 @@ class EasyPaint(ABC):
     def center(self) -> Tuple[float, float]:
         return (self._right + self._left) / 2, (self._top + self._bottom) / 2
 
-    def __init__(self):
-        self.closing = False
+    def __init__(self,
+                 size: Tuple[int, int] = (500, 500),
+                 coordinates: Optional[Tuple[float, float, float, float]] = None,
+                 title: Optional[str] = 'EasyPaint',
+                 background: Optional[str] = 'white'):
+        self._closing = False
 
-        self.background = 'white'
-        self.size = (500, 500)
+        self._width, self._height = size[0], size[1]
+        if coordinates is None:
+            self._left, self._bottom, self._right, self._top = 0, 0, size[0]-1, size[1]-1
+        else:
+            self._left, self._bottom, self._right, self._top = coordinates
+        self._set_scale()
+
+        self._title = title
+        self._background = background
 
         self._root = tkinter.Tk()
-        self.title = 'EasyPaint'
-        self._root.resizable(width=False, height=False)
+
+        self._root.title(self._title)
+        self._root.resizable(width=True, height=True)
         self._root.protocol("WM_DELETE_WINDOW", self.close)
         self._root.bind('<KeyPress>', lambda e: self.on_key_press(e.keysym))
         self._root.bind('<KeyRelease>', lambda e: self.on_key_release(e.keysym))
 
         self._canvas = tkinter.Canvas(self._root, borderwidth=0, highlightthickness=0,
-                                      height=self._height, width=self._width, background=self.background)
-        self._canvas.pack(padx=0, pady=0)
+                                      height=self._height, width=self._width, background=self._background)
+        self._canvas.pack(padx=0, pady=0, anchor="nw")
         self._canvas.bind('<Button>', self._on_mouse_button)
         self._canvas.bind('<ButtonRelease>', self._on_mouse_release)
         self._canvas.bind('<B1-Motion>', lambda e: self._on_mouse_motion(1, e))
         self._canvas.bind('<B2-Motion>', lambda e: self._on_mouse_motion(2, e))
         self._canvas.bind('<B3-Motion>', lambda e: self._on_mouse_motion(3, e))
         self._canvas.bind('<Leave>', self.on_mouse_leave)
+        #self._root.resizable(width=False, height=False)
 
-    def easypaint_configure(self, size: Tuple[int, int],
+    def easypaint_configure_old(self, size: Tuple[int, int],
                             coordinates: Optional[Tuple[float, float, float, float]] = None,
                             title: Optional[str] = 'EasyPaint',
                             background: Optional[str] = 'white'):
@@ -136,7 +158,7 @@ class EasyPaint(ABC):
 
             background -- color name. Default is 'white'
         """
-        if self.closing: return
+        if self._closing: return
         self.erase()
 
         if not (isinstance(size, tuple) and len(size) == 2 and isinstance(size[0], int) and isinstance(size[1], int) and
@@ -144,11 +166,11 @@ class EasyPaint(ABC):
             raise EasyPaintException(
                 "easypaint_configure: Parameter 'size' must be a tuple of two integers greater than 0")
 
-        self.size = size
+        self.size = size  # Resetea self.coordinates y recalcula el escalado
         if coordinates is not None:
-            self.coordinates = coordinates
+            self.coordinates = coordinates # Recalcula el escalado
 
-        self.background = background
+        self._background = background
 
         if title is not None:
             self.title = title
@@ -164,7 +186,7 @@ class EasyPaint(ABC):
         self._yscale = self._height / float(hh + ih)
 
     def _set_transparent_background(self):
-        if self.closing: return
+        if self._closing: return
         self._root.wm_attributes("-transparent", True)
         self._root.config(bg='systemTransparent')
         self._canvas.config(bg='systemTransparent')
@@ -181,19 +203,19 @@ class EasyPaint(ABC):
         return int((self._top - y) * self._yscale)
 
     def _on_mouse_release(self, event):
-        if self.closing: return
+        if self._closing: return
         x = event.x / self._xscale + self._left
         y = self._top - event.y / self._yscale
         self.on_mouse_release(event.num, x, y)
 
     def _on_mouse_button(self, event):
-        if self.closing: return
+        if self._closing: return
         x = event.x / self._xscale + self._left
         y = self._top - event.y / self._yscale
         self.on_mouse_button(event.num, x, y)
 
     def _on_mouse_motion(self, button, event):
-        if self.closing: return
+        if self._closing: return
         x = event.x / self._xscale + self._left
         y = self._top - event.y / self._yscale
         self.on_mouse_motion(button, x, y)
@@ -223,7 +245,7 @@ class EasyPaint(ABC):
     def update(self):
         """Enter event loop until all pending events have been processed by Tcl.
         """
-        if self.closing: return
+        if self._closing: return
         self._canvas.update()  # animaciones más suaves
         # self._canvas.update_idletasks()    # animaciones más bruscas y rapidas
 
@@ -240,7 +262,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the rectangle: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         fn = 'create_rectangle' if fill is None else 'create_filled_rectangle'
         args['outline'] = color[:]
         if fill is not None: args['fill'] = fill[:]
@@ -275,7 +297,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the rectangle: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         if fill is None: fill = color
         return self.create_rectangle(x1, y1, x2, y2, color, fill, **args)
 
@@ -292,7 +314,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the circle: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         fn = 'create_circle' if fill is None else 'create_filled_circle'
         args['outline'] = color[:]
         if fill is not None: args['fill'] = fill[:]
@@ -321,7 +343,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the circle: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         if fill is None: fill = color
         return self.create_circle(x, y, radius, color, fill, **args)
 
@@ -336,7 +358,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the polygon: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         args['fill'] = '' if fill is None else fill
         args['outline'] = color
         try:
@@ -361,7 +383,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the polygon: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         return self.create_polygon(*params, color=color, fill=color, **args)
 
     def create_point(self, x: float, y: float, color: str = 'black', **args):
@@ -375,7 +397,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move o delete the point: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         args['fill'] = color[:]
         args['width'] = 2
         try:
@@ -399,7 +421,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the line
         """
-        if self.closing: return
+        if self._closing: return
         args['fill'] = color
         try:
             x1b, y1b = self._transform(x1, y1)
@@ -432,7 +454,7 @@ class EasyPaint(ABC):
         Returns:
             A number (identifier). You can use this 'id' to move or delete the text: erase(id)
         """
-        if self.closing: return
+        if self._closing: return
         args['text'] = text
         args['anchor'] = anchor.lower()
         args['fill'] = color
@@ -458,7 +480,7 @@ class EasyPaint(ABC):
 
         \t erase(tag_or_id): remove the element
         """
-        if self.closing: return
+        if self._closing: return
         if param is None:  # Delete all elements
             try:
                 for elem in self._canvas.find_all():
@@ -481,7 +503,7 @@ class EasyPaint(ABC):
     def save_eps(self, nombre: str):
         """Print the contents of the canvas to a postscript file.
         """
-        if self.closing: return
+        if self._closing: return
         data = self._canvas.postscript(height=self._height, width=self._width,
                                        pagewidth='20.0c')
         try:
@@ -498,7 +520,7 @@ class EasyPaint(ABC):
     def move(self, tags, x: float, y: float):
         """Move items with tags
         """
-        if self.closing: return
+        if self._closing: return
         try:
             xb = x * self._xscale
             yb = -y * self._yscale
@@ -512,16 +534,15 @@ class EasyPaint(ABC):
     def close(self):
         """Terminates the program
         """
-        if self.closing: return
-        self.closing = True
+        if self._closing: return
+        self._closing = True
         self._root.destroy()
         self._root.quit()
 
     def run(self):
         """ Launch the mainloop
         """
-        if self.closing: return
-        self.main()
+        if self._closing: return
         self._root.mainloop()
 
     def after(self, time: int, f: Callable[[Any], Any]):
@@ -532,24 +553,20 @@ class EasyPaint(ABC):
 
             f -- the function which shall be called
         """
-        if self.closing: return
+        if self._closing: return
         self._root.after(time, f)
 
     def tag_lower(self, tag):
         """Lower an item (z-index).
         """
-        if self.closing: return
+        if self._closing: return
         self._canvas.tag_lower(tag)
 
     def tag_raise(self, tag):
         """Raise an item (z-index).
         """
-        if self.closing: return
+        if self._closing: return
         self._canvas.tag_raise(tag)
-
-    @abstractmethod
-    def main(self):
-        pass
 
 
 # --------------------------------------------------------------------------
@@ -557,16 +574,16 @@ class EasyPaint(ABC):
 
 if __name__ == "__main__":
     class Demo(EasyPaint):
-        def on_key_press(self, keysym):
-            self.close()
+        def __init__(self, size):
+            super().__init__(size=size, title="EasyPaint")
 
-        def main(self):
-            self.easypaint_configure(title='EasyPaint test', size=(600, 600))
             print(self.size, self.coordinates, self.scale)
             self.create_filled_rectangle(10, 10, 590, 590, "black", "white")
             x, y = self.center
             self.create_text(x, y, "To exit press any key\nor\nclose the window", 14, justify="center")
             # self.save_eps("kk.eps")
 
+        def on_key_press(self, keysym):
+            self.close()
 
-    Demo().run()
+    Demo(size=(600,600)).run()

@@ -11,50 +11,13 @@ from math import pi
 from typing import *
 
 from easypaint import EasyPaint
-from easypaint.libsimple3d import *
+from libsimple3d import *
+
+PPD = 1000
 
 
 class SomaAnim(EasyPaint):
-    ppd = 1000
-    escena = Escena3D(ppd)
-
-    def __init__(self, sol):
-        EasyPaint.__init__(self)
-        self.sol = sol
-        self.cubos = {}
-
-    def build(self):
-        self.cubos = {}
-        f = {}
-        for x in range(3):
-            for y in range(3):
-                for z in range(3):
-                    key = self.sol[x][y][z]
-                    if key in f:
-                        f[key].append((x, y, z))
-                    else:
-                        f[key] = [(x, y, z)]
-        lado = 800
-        for key in f:
-            for cube in f[key]:
-                p = Punto3D(cube[0] * lado, cube[1] * lado, cube[2] * lado)
-                cubo = Cubo3D(lado * 0.9999999999, p)
-                if key in self.cubos:
-                    self.cubos[key].append(cubo)
-                else:
-                    self.cubos[key] = [cubo]
-                m = Matriz3D()
-                m.traslacion(-1 * lado, -1 * lado, -1 * lado)
-                cubo.transforma3d(m)
-                cubo.setup()
-                self.escena.insertar(cubo)
-        return f
-
-    def on_key_press(self, keysym):
-        if keysym in ['Return', 'Escape']:
-            self.close()
-
-    def main(self):
+    def __init__(self, sol: List[List[List[int]]]):
         def anim(step, max_step):
             nonlocal t, nl2, lin2, sc_old, ii
             if step < max_step // 2:
@@ -94,13 +57,16 @@ class SomaAnim(EasyPaint):
             step = (step + 1) % max_step
             self.after(0, lambda: anim(step, max_step))
 
-        self.easypaint_configure(title='Soma cube - Animated solution',
-                                 background='lightblue',
-                                 size=(501, 401),
-                                 coordinates=(-500, -400, 500, 400))
+        super().__init__(title='Soma cube - Animated solution',
+                         background='lightblue',
+                         size=(501, 401),
+                         coordinates=(-500, -400, 500, 400))
+        self.sol: List[List[List[int]]] = sol
+        self.cubos: Dict[int, List[Cubo3D]] = {}
         self.create_text(0, -390, "Press 'Return' or 'Escape' to exit", 10, 'S', 'blue')
-
-        f = self.build()
+        self.ppd = 1000
+        self.escena: Escena3D = Escena3D(self.ppd)
+        f: Dict[int, List[Tuple[int, int, int]]] = self.build()
 
         pi2 = 2 * pi
         lin2 = []
@@ -115,6 +81,36 @@ class SomaAnim(EasyPaint):
         inc = 1.003 * pi / 100  # 0.042
         ii = 0
         self.after(0, lambda: anim(0, 100))
+
+    def build(self) -> Dict[int, List[Tuple[int, int, int]]]:
+        f: Dict[int, List[Tuple[int, int, int]]] = {}
+        for x in range(3):
+            for y in range(3):
+                for z in range(3):
+                    key = self.sol[x][y][z]
+                    if key in f:
+                        f[key].append((x, y, z))
+                    else:
+                        f[key] = [(x, y, z)]
+        lado = 800
+        for key in f:
+            for cube in f[key]:
+                p = Punto3D(cube[0] * lado, cube[1] * lado, cube[2] * lado)
+                cubo = Cubo3D(lado * 0.9999999999, p)
+                if key in self.cubos:
+                    self.cubos[key].append(cubo)
+                else:
+                    self.cubos[key] = [cubo]
+                m = Matriz3D()
+                m.traslacion(-1 * lado, -1 * lado, -1 * lado)
+                cubo.transforma3d(m)
+                cubo.setup()
+                self.escena.insertar(cubo)
+        return f
+
+    def on_key_press(self, keysym: str):
+        if keysym in ['Return', 'Escape']:
+            self.close()
 
 
 if __name__ == '__main__':

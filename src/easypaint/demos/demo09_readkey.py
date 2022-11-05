@@ -10,7 +10,12 @@ from easypaint import EasyPaint
 
 
 class Demo9(EasyPaint):
-    id = None
+    def __init__(self):
+        super().__init__(title='Demo 9 - readkey',
+                         size=(400, 200),
+                         coordinates=(0, 0, 400, 200))
+        self.id = None
+        self.create_text(200, 0, "Press any key. 'Escape' to exit.", 10, 's')
 
     def on_key_release(self, keysym):
         if self.id is not None:
@@ -22,13 +27,6 @@ class Demo9(EasyPaint):
         self.id = self.create_text(200, 100, f"{keysym}", 40, 'c')
         if keysym == 'Escape':
             self.close()
-
-    def main(self):
-        self.easypaint_configure(title='Demo 9 - readkey',
-                                 background='white',
-                                 size=(400, 200),
-                                 coordinates=(0, 0, 400, 200))
-        self.create_text(200, 0, "Press any key. 'Escape' to exit.", 10, 's')
 
 
 Demo9().run()
