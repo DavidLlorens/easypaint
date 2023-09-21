@@ -1,4 +1,9 @@
 """
+2023/09/21 - 1.0.5 - Added 'VERSION' constant
+                   - easypaint_configure(...): Parameter 'size' now has three options:
+                        'FIT'   : max available size keaping aspect ratio (see param 'coordinates')
+                        'FULL'  : max available size
+                        (width, height)
 2022/09/22 - 1.0.4 - Corregido create_filled_polygon(...)
 2022/09/22 - 1.0.3 - Añade create_filled_polygon(...)
 2022/09/22 - 1.0.2 - Añade create_polygon(...)
@@ -6,14 +11,18 @@
 
 @author: David Llorens
 @contact: dllorens@uji.es
-@copyright: Universitat Jaume I de Castelló (2021)
+@copyright: Universitat Jaume I de Castelló (2023)
 @licence: GNU Affero General Public License v3
 """
 
 import tkinter
 from abc import ABC, abstractmethod
-from typing import *
+from typing import Any, Callable
 
+VERSION = '1.0.5'
+
+DEFAULT_CANVAS_WIDTH = 500
+DEFAULT_CANVAS_HEIGHT = 500
 
 class EasyPaintException(Exception):
     def __init__(self, message, value=None):
@@ -41,12 +50,34 @@ class EasyPaint(ABC):
         return self._width, self._height
 
     @size.setter
-    def size(self, value):
-        self._width, self._height = value
-        self._left, self._bottom, self._right, self._top = (0, 0, self.size[0] - 1, self.size[1] - 1)
+    def size(self, value: tuple[int, int] | str):
+        msg = "easypaint_configure: Parameter 'size' must be a tuple of two integers greater than 0 or 'FIT' or 'FULL'"
+        if isinstance(value, str):
+            if value == 'FULL':
+                size_t = self._screensize
+            elif value == 'FIT':
+                l, b, r, t = self.coordinates
+                ar = abs(r - l)/abs(t - b)
+
+                size_t = self._screensize
+                ar2 = size_t[0]/size_t[1]
+                if ar < ar2:
+                    size_t = int(ar*size_t[1]), size_t[1]
+                elif ar > ar2:
+                    size_t = size_t[0], int(size_t[0]/ar)
+            else:
+                raise EasyPaintException(msg)
+        elif (isinstance(value, tuple) and len(value) == 2 and isinstance(value[0], int) and
+              isinstance(value[1], int) and value[0] > 0 and value[1] > 0):
+            size_t = value
+        else:
+            raise EasyPaintException(msg)
+
+        self._width, self._height = size_t
         if hasattr(self, '_canvas'):
             self.erase()
-            canvas_args = {"width": self._width, "height": self._height}
+            canvas_args = {"width": min(self._width, self._screensize[0]),
+                           "height": min(self._height, self._screensize[1])}
             self._canvas.configure(**canvas_args)
         self._set_scale()
 
@@ -55,7 +86,7 @@ class EasyPaint(ABC):
         return self._left, self._bottom, self._right, self._top
 
     @coordinates.setter
-    def coordinates(self, value):
+    def coordinates(self, value: tuple[float, float, float, float]):
         if hasattr(self, '_canvas'):
             self.erase()
         self._left, self._bottom, self._right, self._top = value
@@ -91,20 +122,24 @@ class EasyPaint(ABC):
         return self._bottom
 
     @property
-    def scale(self) -> Tuple[float, float]:
+    def scale(self) -> tuple[float, float]:
         return self._xscale, self._yscale
 
     @property
-    def center(self) -> Tuple[float, float]:
+    def center(self) -> tuple[float, float]:
         return (self._right + self._left) / 2, (self._top + self._bottom) / 2
 
     def __init__(self):
         self.closing = False
 
         self.background = 'white'
-        self.size = (500, 500)
+
+        self._width, self._height = DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT
+        self._left, self._bottom, self._right, self._top = 0, 0, self._width - 1, self._height - 1
+        self._set_scale()
 
         self._root = tkinter.Tk()
+        self._screensize = self._root.maxsize()
         self.title = 'EasyPaint'
         self._root.resizable(width=False, height=False)
         self._root.protocol("WM_DELETE_WINDOW", self.close)
@@ -121,30 +156,32 @@ class EasyPaint(ABC):
         self._canvas.bind('<B3-Motion>', lambda e: self._on_mouse_motion(3, e))
         self._canvas.bind('<Leave>', self.on_mouse_leave)
 
-    def easypaint_configure(self, size: Tuple[int, int],
-                            coordinates: Optional[Tuple[float, float, float, float]] = None,
-                            title: Optional[str] = 'EasyPaint',
-                            background: Optional[str] = 'white'):
+    def easypaint_configure(self, size: tuple[int, int] | str = 'FIT',
+                            coordinates: tuple[float, float, float, float] | None = None,
+                            title: str | None = 'EasyPaint',
+                            background: str | None = 'white'):
         """Configure the window
 
         Arguments:
-            size -- tuple (width, height)
+            size -- 'FIT'   : max available size keaping aspect ratio (see param 'coordinates')
+                    'FULL'  : max available size
+                    (width, height)
 
-            coordinates -- tuple (left, bottom, right, top). Default is (0, 0, width-1, height-1)
+            coordinates -- (left, bottom, right, top). Default is (0, 0, width-1, height-1)
 
-            title -- window tile. Default is 'EasyPaint'
+            title -- window title. Default is 'EasyPaint'
 
             background -- color name. Default is 'white'
         """
         if self.closing: return
+
         self.erase()
 
-        if not (isinstance(size, tuple) and len(size) == 2 and isinstance(size[0], int) and isinstance(size[1], int) and
-                size[0] > 0 and size[1] > 0):
-            raise EasyPaintException(
-                "easypaint_configure: Parameter 'size' must be a tuple of two integers greater than 0")
+        if size is not None:
+            self.size = size
+            self._left, self._bottom, self._right, self._top = 0, 0, self.size[0]-1, self.size[1]-1
+            self._set_scale()
 
-        self.size = size
         if coordinates is not None:
             self.coordinates = coordinates
 
@@ -251,12 +288,12 @@ class EasyPaint(ABC):
                 x1b, x2b = x2b, x1b
             if y2b < y1b:
                 y1b, y2b = y2b, y1b
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in {fn}: {(x1, y1, x2, y2)}")
 
         try:
             return self._canvas.create_rectangle(*(x1b, y1b, x2b, y2b), **args)
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"{fn}")
 
     def create_filled_rectangle(self, x1: float, y1: float, x2: float, y2: float, color: str = 'black', fill=None,
@@ -299,11 +336,11 @@ class EasyPaint(ABC):
         try:
             x1b, y1b = self._transform(x - radius, y - radius)
             x2b, y2b = self._transform(x + radius, y + radius)
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in {fn}: {(x, y)}")
         try:
             return self._canvas.create_oval(*(x1b, y1b, x2b, y2b), **args)
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"{fn}")
 
     def create_filled_circle(self, x: float, y: float, radius: float, color='black', fill=None, **args):
@@ -341,7 +378,7 @@ class EasyPaint(ABC):
         args['outline'] = color
         try:
             params2 = [self._transform_x(e) if i % 2 == 0 else self._transform_y(e) for i, e in enumerate(params)]
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in create_polygon: {params}")
         try:
             return self._canvas.create_polygon(*params2, **args)
@@ -356,13 +393,15 @@ class EasyPaint(ABC):
 
             color -- outline color name (default is 'black')
 
-            fill -- color name (default is 'black')
+            fill -- color name (default is same as color)
 
         Returns:
             A number (identifier). You can use this 'id' to move or delete the polygon: erase(id)
         """
+        if fill is None:
+            fill = color
         if self.closing: return
-        return self.create_polygon(*params, color=color, fill=color, **args)
+        return self.create_polygon(*params, color=color, fill=fill, **args)
 
     def create_point(self, x: float, y: float, color: str = 'black', **args):
         """Draws a point
@@ -381,11 +420,11 @@ class EasyPaint(ABC):
         try:
             x1b, y1b = self._transform(x, y)
             x2b = x1b + 2
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in create_point: {(x, y)}")
         try:
             return self._canvas.create_line(*(x1b, y1b, x2b, y1b), **args)
-        except:
+        except Exception as _e:
             raise EasyPaintException("create_point")
 
     def create_line(self, x1: float, y1: float, x2: float, y2: float, color: str = 'black', **args):
@@ -404,12 +443,12 @@ class EasyPaint(ABC):
         try:
             x1b, y1b = self._transform(x1, y1)
             x2b, y2b = self._transform(x2, y2)
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in create_line: {(x1, y1, x2, y2)}")
         try:
             # id = self.canvas.create_line(x1b, y1b, x2b, y2b, args.copy())
             return self._canvas.create_line(*(x1b, y1b, x2b, y2b), **args)
-        except:
+        except Exception as _e:
             raise EasyPaintException("create_line")
 
     def create_text(self, x: float, y: float, text: str, font_size: int = 10,
@@ -440,12 +479,12 @@ class EasyPaint(ABC):
         args['font'] = ('courier', int(font_size * 1.15 + 2), 'bold')
         try:
             xb, yb = self._transform(x, y)
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in create_text: {(x, y)}")
         try:
             # return self.canvas.create_text(xb, yb, args)
             return self._canvas.create_text(*(xb, yb), **args)
-        except:
+        except Exception as _e:
             raise EasyPaintException("create_text")
 
     def erase(self, param=None):
@@ -470,12 +509,12 @@ class EasyPaint(ABC):
                 try:
                     for elem in param:
                         self._canvas.delete(elem)
-                except:
+                except Exception as _e:
                     raise EasyPaintException(f"Wrong id in erase: {param}")
         else:  # Delete single element
             try:
                 self._canvas.delete(param)
-            except:
+            except Exception as _e:
                 raise EasyPaintException("erase")
 
     def save_eps(self, nombre: str):
@@ -491,7 +530,7 @@ class EasyPaint(ABC):
             finally:
                 f.close()
             res = 1
-        except:
+        except Exception as _e:
             res = 0
         return res
 
@@ -502,11 +541,11 @@ class EasyPaint(ABC):
         try:
             xb = x * self._xscale
             yb = -y * self._yscale
-        except:
+        except Exception as _e:
             raise EasyPaintException(f"Wrong coordinates in move: x={x}, y={y}")
         try:
             self._canvas.move(tags, xb, yb)
-        except:
+        except Exception as _e:
             raise EasyPaintException("move")
 
     def close(self):

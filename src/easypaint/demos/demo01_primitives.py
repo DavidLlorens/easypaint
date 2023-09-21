@@ -29,7 +29,8 @@ class Demo1(EasyPaint):
 
     def main(self):
         self.easypaint_configure(title='Demo 1 - Funciones predefinidas',
-                                 size=(501, 501))
+                                 size=(501, 501),
+                                 coordinates=(0, 0, 500, 500))
         o_ids = []
         # Dibuja matriz de puntos
         for x in range(25, 225, 21):

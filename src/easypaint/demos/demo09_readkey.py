@@ -26,7 +26,7 @@ class Demo9(EasyPaint):
     def main(self):
         self.easypaint_configure(title='Demo 9 - readkey',
                                  background='white',
-                                 size=(400, 200),
+                                 size=(401, 201),
                                  coordinates=(0, 0, 400, 200))
         self.create_text(200, 0, "Press any key. 'Escape' to exit.", 10, 's')
 
