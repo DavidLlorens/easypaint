@@ -1,4 +1,7 @@
 """
+2024/09/27 - 1.0.6 - Corregido __slots__ y tipo del método after.
+                   - Added 'TVERSION' constant
+                   - Corrige bug en 'FIT' (ver 1.0.5).
 2023/09/21 - 1.0.5 - Added 'VERSION' constant
                    - easypaint_configure(...): Parameter 'size' now has three options:
                         'FIT'   : max available size keaping aspect ratio (see param 'coordinates')
@@ -11,7 +14,7 @@
 
 @author: David Llorens
 @contact: dllorens@uji.es
-@copyright: Universitat Jaume I de Castelló (2023)
+@copyright: Universitat Jaume I de Castelló (2024)
 @licence: GNU Affero General Public License v3
 """
 
@@ -19,7 +22,8 @@ import tkinter
 from abc import ABC, abstractmethod
 from typing import Any, Callable
 
-VERSION = '1.0.5'
+TVERSION = (1, 0, 6)
+VERSION = '.'.join([str(e) for e in TVERSION])
 
 DEFAULT_CANVAS_WIDTH = 500
 DEFAULT_CANVAS_HEIGHT = 500
@@ -34,7 +38,7 @@ class EasyPaintException(Exception):
 class EasyPaint(ABC):
     __slots__ = ('_title', '_background', '_root', '_canvas',
                  '_width', '_height', '_xscale', '_yscale',
-                 '_left', '_right', '_top', '_bottom')
+                 '_left', '_right', '_top', '_bottom', '_screensize', 'closing')
 
     @property
     def title(self):
@@ -177,10 +181,16 @@ class EasyPaint(ABC):
 
         self.erase()
 
-        if size is not None:
-            self.size = size
-            self._left, self._bottom, self._right, self._top = 0, 0, self.size[0]-1, self.size[1]-1
-            self._set_scale()
+        if coordinates is None:
+            try:
+                self._left, self._bottom, self._right, self._top = 0, 0, self.size[0]-1, self.size[1]-1
+            except:
+                self._left, self._bottom, self._right, self._top = 0, 0, 1000, 1000
+        else:
+            self._left, self._bottom, self._right, self._top = coordinates
+
+        self.size = size
+        self._set_scale()
 
         if coordinates is not None:
             self.coordinates = coordinates
@@ -563,7 +573,7 @@ class EasyPaint(ABC):
         self.main()
         self._root.mainloop()
 
-    def after(self, time: int, f: Callable[[Any], Any]):
+    def after(self, time: int, f: Callable[[], Any]):
         """Call function once after given time.
 
         Arguments:
@@ -600,9 +610,10 @@ if __name__ == "__main__":
             self.close()
 
         def main(self):
-            self.easypaint_configure(title='EasyPaint test', size=(600, 600))
-            print(self.size, self.coordinates, self.scale)
-            self.create_filled_rectangle(10, 10, 590, 590, "black", "white")
+            size = 600, 300
+            #size = 'FIR'
+            self.easypaint_configure(title='EasyPaint test', size=size, coordinates=(0, 300, 600, 0))
+            self.create_filled_rectangle(10, 10, 590, 290, "black", "white")
             x, y = self.center
             self.create_text(x, y, "To exit press any key\nor\nclose the window", 14, justify="center")
             # self.save_eps("kk.eps")
