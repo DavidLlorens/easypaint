@@ -1,4 +1,5 @@
 """
+2024/09/30 - 1.0.7 - Corregido bug cuando self.coordinates es None.
 2024/09/27 - 1.0.6 - Corregido __slots__ y tipo del método after.
                    - Added 'TVERSION' constant
                    - Corrige bug en 'FIT' (ver 1.0.5).
@@ -22,7 +23,7 @@ import tkinter
 from abc import ABC, abstractmethod
 from typing import Any, Callable
 
-TVERSION = (1, 0, 6)
+TVERSION = (1, 0, 7)
 VERSION = '.'.join([str(e) for e in TVERSION])
 
 DEFAULT_CANVAS_WIDTH = 500
@@ -183,7 +184,7 @@ class EasyPaint(ABC):
 
         if coordinates is None:
             try:
-                self._left, self._bottom, self._right, self._top = 0, 0, self.size[0]-1, self.size[1]-1
+                self._left, self._bottom, self._right, self._top = 0, 0, size[0]-1, size[1]-1
             except:
                 self._left, self._bottom, self._right, self._top = 0, 0, 1000, 1000
         else:
