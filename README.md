@@ -41,7 +41,7 @@ Si prefieres probar la biblioteca sin escribir código propio, puedes lanzar cua
 
 ## Notas técnicas
 
-- La biblioteca necesita Python 3.12 o superior.
+- La biblioteca funciona en Python 3.12 o superior.
 - El paquete publicado en `pip` es `easypaint`.
 - La implementación depende de `tkinter`, así que en sistemas Unix puede ser necesario instalar el paquete del sistema.
 
