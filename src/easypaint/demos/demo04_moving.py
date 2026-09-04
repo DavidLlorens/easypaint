@@ -19,19 +19,24 @@ class State(Enum):
 
 class Demo4(EasyPaint):
     state: State = State.Initial
-    textId = None
+    textId: int | None
 
-    def on_key_press(self, keysym):
+    def __init__(self) -> None:
+        super().__init__()
+        self.textId = None
+
+    def on_key_press(self, keysym: str) -> None:
         if self.state == State.Initial:
             pass
         elif self.state == State.Delete:
-            self.erase(['c2', self.textId])
-            self.create_text(500, 0, "Press any key to exit", 12, 's')
+            if self.textId:
+                self.erase('c2', self.textId)
+            self.textId = self.create_text(500, 0, "Press any key to exit", 12, 's')
             self.state = State.Exit
         elif self.state == State.Exit:
             self.close()
 
-    def animation(self, c):
+    def animation(self, c: int) -> None:
         self.move('c', 1, 0)
         self.move('c2', -1, 0)
         if c > 0:
@@ -40,9 +45,9 @@ class Demo4(EasyPaint):
             self.textId = self.create_text(500, 0, "Press any key to delete left circles", 12, 's')
             self.state = State.Delete
 
-    def main(self):
-        self.easypaint_configure(title='Demo 4 - Interferencia',
-                                 background='steelblue',
+    def main(self) -> None:
+        self.easypaint_configure(title='Demo 4 - Interference',
+                                     background='steelblue',
                                  size=(600, 600),
                                  coordinates=(0, 0, 1000, 1000))
         for i in range(1, 16):

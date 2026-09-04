@@ -10,10 +10,10 @@ from easypaint import EasyPaint
 
 
 class Demo1(EasyPaint):
-    def on_key_press(self, keysym):
+    def on_key_press(self, keysym: str) -> None:
         self.close()
 
-    def main(self):
+    def main(self) -> None:
         x1, y1, x2, y2 = (0, 0, 399, 399)
         self.easypaint_configure(title='Demo 0 - Window size and window coordinates',
                                  background='white',

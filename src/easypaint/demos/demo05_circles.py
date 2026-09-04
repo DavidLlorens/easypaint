@@ -12,32 +12,38 @@ from easypaint import EasyPaint
 
 
 class Demo5(EasyPaint):
-    t_id = None
-    o_ids = []
-    colores = ['red', 'green', 'blue', 'yellow', 'orange', 'black', 'pink']
+    t_id: int | None
+    o_ids: list[int]
+    colores: list[str] = ['red', 'green', 'blue', 'yellow', 'orange', 'black', 'pink']
 
-    def dibuja_circulo_azar(self):
+    def __init__(self) -> None:
+        super().__init__()
+        self.t_id = None
+        self.o_ids = []
+
+    def dibuja_circulo_azar(self) -> int:
         x = randrange(0, 1000)
         y = randrange(0, 1000)
         tam = randrange(10, 300)
-        col = self.colores[randrange(0, len(self.colores) - 1)]
+        col = self.colores[randrange(0, len(self.colores))]
         return self.create_filled_circle(x, y, tam, col)
 
-    def on_key_press(self, keysym):
+    def on_key_press(self, keysym: str) -> None:
         self.close()
 
-    def animation(self):
+    def animation(self) -> None:
         if len(self.o_ids) == 100:
             self.erase(self.o_ids[0])
             del self.o_ids[0]
         self.o_ids.append(self.dibuja_circulo_azar())
-        self.tag_raise(self.t_id)
+        if self.t_id:
+            self.tag_raise(self.t_id)
         self.update()
         self.after(0, self.animation)
 
-    def main(self):
-        self.easypaint_configure(title='Demo 5 - Círculos aleatorios',
-                                 background='steelblue',
+    def main(self) -> None:
+        self.easypaint_configure(title='Demo 5 - Random Circles',
+                                     background='steelblue',
                                  size=(600, 600),
                                  coordinates=(0, 0, 1000, 1000))
 

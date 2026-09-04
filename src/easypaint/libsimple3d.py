@@ -14,9 +14,13 @@ Created on 22/10/2021
 #              Computador' de Ian O. Angell.
 # Versión: 0.2 (beta)
 
+from __future__ import annotations
+
 import copy
 import types
 from math import cos, sin, atan2, sqrt
+from dataclasses import dataclass
+from typing import Callable, overload
 
 epsilon = 0.000001
 epsilon1 = 1 + epsilon
@@ -26,22 +30,36 @@ OCULTAR_SI = 1
 OCULTAR_CARAS_TRASERAS = 2
 
 
-class Escena3D:
-    def __init__(self, ppd=600, ocultar=OCULTAR_SI, verb=0):
-        self.o = []
-        self.lin = []
-        self.ppd = ppd
-        self.dist = 0.0
-        self.ocultar = ocultar
-        self.verb = verb
+@dataclass
+class CaraP:
+    lInd: list[int]
+    visible: int = 1
 
-    def insertar(self, o):
+
+class Escena3D:
+    o: list[Objeto3D]
+    lin: list[tuple[float, float, float, float, str]]
+    ppd: int
+    dist: float
+    ocultar: int
+    verb: int
+
+    def __init__(self, ppd: int = 600, ocultar: int = OCULTAR_SI, verb: int = 0) -> None:
+        self.o: list[Objeto3D] = []
+        self.lin: list[tuple[float, float, float, float, str]] = []
+        self.ppd: int = ppd
+        self.dist: float = 0.0
+        self.ocultar: int = ocultar
+        self.verb: int = verb
+
+    def insertar(self, o: Objeto3D) -> None:
         self.o.append(o)
 
-    def transforma3d(self, m):
-        [obj.transforma3d(m) for obj in self.o]
+    def transforma3d(self, m: Matriz3D) -> None:
+        for obj in self.o:
+            obj.transforma3d(m)
 
-    def puntoVista(self, pv, ppd=None):
+    def puntoVista(self, pv: Punto3D, ppd: int | None = None) -> None:
         if ppd != None: self.ppd = ppd
         x, y, z = pv.x, pv.y, pv.z
         m = Matriz3D()
@@ -52,7 +70,7 @@ class Escena3D:
         m.rotacionX(-phi)
         self.transforma3d(m)
 
-    def puntoVistaObj(self, pv, obj, ppd=None):
+    def puntoVistaObj(self, pv: Punto3D, obj: Objeto3D, ppd: int | None = None) -> None:
         if ppd != None: self.ppd = ppd
         x, y, z = pv.x, pv.y, pv.z
         m = Matriz3D()
@@ -63,13 +81,13 @@ class Escena3D:
         m.rotacionX(-phi)
         obj.transforma3d(m)
 
-    def dibuja(self):
+    def dibuja(self) -> list[tuple[float, float, float, float, str]]:
         a = len(self.o)
         self.lin = []
         verb = self.verb
         if self.ocultar == OCULTAR_SI:
+            no = 1
             if verb:
-                no = 1
                 print("\nverb: Obteniendo caras visibles:")
             for obj in self.o:
                 if verb:
@@ -78,8 +96,8 @@ class Escena3D:
                 obj.averiguarCarasVisibles(self.verb)
                 obj.proyectarSiVisible(self.ppd, self.dist)
             if verb:
-                no = 1
                 print("\nverb: Obteniendo segmentos de línea visibles:")
+            no = 1
             for obj in self.o:
                 if verb:
                     print("verb: Objeto %d de %d" % (no, a))
@@ -99,10 +117,10 @@ class Escena3D:
                     p2 = obj.puntos3dT[pp2]
                     if not (p1.visible and p2.visible): continue
                     seg = self._oculta(p1, p2, milinea, obj)
-                    list(map(self.lin.append, seg))
+                    self.lin.extend(seg)
         elif self.ocultar == OCULTAR_CARAS_TRASERAS:
+            no = 1
             if verb:
-                no = 1
                 print("\nverb: Obteniendo caras visibles:")
             for obj in self.o:
                 if verb:
@@ -110,7 +128,6 @@ class Escena3D:
                     no += 1
                 obj.averiguarCarasVisibles(self.verb)
                 obj.proyectarSiVisible(self.ppd, self.dist)
-            no = 1
             for obj in self.o:
                 if verb:
                     print("verb: Objeto %d de %d" % (no, a))
@@ -129,7 +146,7 @@ class Escena3D:
                     try:
                         x1, y1 = obj.puntos3dT[pp1].proy
                         x2, y2 = obj.puntos3dT[pp2].proy
-                        self.lin.append((x1, y1, x2, y2))
+                        self.lin.append((x1, y1, x2, y2, obj.color))
                     except:
                         pass
         else:
@@ -151,18 +168,19 @@ class Escena3D:
                         nl += 1
                     x1, y1 = obj.puntos3dT[pp1].proy
                     x2, y2 = obj.puntos3dT[pp2].proy
-                    self.lin.append((x1, y1, x2, y2))
+                    self.lin.append((x1, y1, x2, y2, obj.color))
         return self.lin
 
-    def _oculta(self, p1, p2, mi_linea, mi_obj):
+    def _oculta(self, p1: Punto3D, p2: Punto3D, mi_linea: tuple[int, int], mi_obj: Objeto3D) -> list[tuple[float, float, float, float, str]]:
         x1, y1 = p1.proy
         x2, y2 = p2.proy
         rm = [[0.0, 1.0]]
+        segmentos: list[tuple[float, float, float, float, str]] = []
         xd, yd = x2 - x1, y2 - y1
         for obj in self.o:
             l = list(range(len(obj.carasP)))
             for i in l:
-                if obj.carasP[i][1] == 0: continue  # mira si es visible
+                if obj.carasP[i].visible == 0: continue  # mira si es visible
                 ok = 0
                 if obj is mi_obj:
                     cx = obj.caras[i]
@@ -171,7 +189,7 @@ class Escena3D:
                             ok = 1
                             break
                     if ok: continue
-                c = obj.carasP[i][0]
+                c = obj.carasP[i].lInd
                 cc = c + [c[0]]
                 # Posibilidad A)
                 xx1, yy1 = obj.puntos3dT[c[0]].proy
@@ -335,12 +353,11 @@ class Escena3D:
                     else:
                         rm[ii][0] = rmax
                 # limpiar rm
-                rm2 = []
+                rm2: list[list[float]] = []
                 for r1, r2 in rm:
                     if r1 >= 0.0: rm2.append([r1, r2])
                 if len(rm2) == 0: return []
                 rm = rm2
-        lin = []
         for s in rm:
             r1 = s[0]
             r2 = 1.0 - r1
@@ -351,33 +368,48 @@ class Escena3D:
             xp2 = x1 * r2 + x2 * r1
             yp2 = y1 * r2 + y2 * r1
             if (xp1 - xp2) != 0.0 and (yp1 - yp2) != 0.0:
-                lin.append((xp1, yp1, xp2, yp2))
-        return lin
+                segmentos.append((xp1, yp1, xp2, yp2, mi_obj.color))
+        return segmentos
 
 
 class Objeto3D:
-    def __init__(self, puntos3d, caras=[], carasP=[], lineas={}, lineasR=[0]):
-        self.puntos3d = copy.deepcopy(puntos3d)
-        self.puntos3dT = []  # [0.0]*len(self.puntos3d)
-        self.caras = copy.deepcopy(caras)
-        self.carasP = copy.deepcopy(carasP)
-        self.lineas = copy.deepcopy(lineas)
-        self.lineasR = copy.deepcopy(lineasR)
-        self.lin = []
-        self.numLin = 1  # tiene 1 de mas
-        if carasP == [] or lineas == [] or lineasR == [0]:
-            for c in caras: self.nuevaCara(c)
+    puntos3d: list[Punto3D]
+    puntos3dT: list[Punto3D]
+    caras: list[list[int]]
+    carasP: list[CaraP]
+    lineas: dict[tuple[int, int], int]
+    lineasR: list[tuple[int, int]]
+    lin: list[tuple[float, float, float, float, str]]
+    numLin: int
+    color: str
 
-    def setup(self):
+    def __init__(self, puntos3d: list[Punto3D], caras: list[list[int]] | None = None,
+                 carasP: list[CaraP] | None = None,
+                 lineas: dict[tuple[int, int], int] | None = None,
+                 lineasR: list[tuple[int, int]] | None = None,
+                 color: str = 'black') -> None:
+        self.puntos3d: list[Punto3D] = copy.deepcopy(puntos3d)
+        self.puntos3dT: list[Punto3D] = []  # [0.0]*len(self.puntos3d)
+        self.caras: list[list[int]] = copy.deepcopy(caras) if caras is not None else []
+        self.carasP: list[CaraP] = copy.deepcopy(carasP) if carasP is not None else []
+        self.lineas: dict[tuple[int, int], int] = copy.deepcopy(lineas) if lineas is not None else {}
+        self.lineasR: list[tuple[int, int]] = copy.deepcopy(lineasR) if lineasR is not None else [(0, 0)]
+        self.lin: list[tuple[float, float, float, float, str]] = []
+        self.numLin: int = 1  # tiene 1 de mas
+        self.color: str = color
+        if not self.carasP or not self.lineas or self.lineasR == [(0, 0)]:
+            for c in self.caras: self.nuevaCara(c)
+
+    def setup(self) -> None:
         self.puntos3d = copy.deepcopy(self.puntos3dT)
 
-    def copia(self):
+    def copia(self) -> Objeto3D:
         return Objeto3D(self.puntos3d, self.caras, self.carasP,
-                        self.lineas, self.lineasR)
+                        self.lineas, self.lineasR, self.color)
 
-    def nuevaCara(self, lInd):
-        self.carasP.append([lInd[:], 1])
-        cara = []
+    def nuevaCara(self, lInd: list[int]) -> None:
+        self.carasP.append(CaraP(lInd[:], 1))
+        cara: list[int] = []
         aux = lInd[1:] + [lInd[0]]
         pOld = lInd[0]
         for p in aux:
@@ -394,26 +426,26 @@ class Objeto3D:
             pOld = p
         self.caras.append(cara)
 
-    def transforma3d(self, m):
+    def transforma3d(self, m: Matriz3D) -> None:
         self.puntos3dT = []
-        aux = self.puntos3dT.append
+        aux: Callable[[Punto3D], None] = self.puntos3dT.append
         for punto in self.puntos3d:
             aux(m * punto)
         # for i in range(len(self.puntos3d)):
         #    self.puntos3dT[i] = m*self.puntos3d[i]
 
-    def proyectar(self, ppd, dist=0.0):
+    def proyectar(self, ppd: float, dist: float = 0.0) -> None:
         for p3d in self.puntos3dT:
             dd = ppd / (p3d.z + dist)
             p3d.proy = (p3d.x * dd, -p3d.y * dd)
 
-    def proyectarSiVisible(self, ppd, dist=0.0):
+    def proyectarSiVisible(self, ppd: float, dist: float = 0.0) -> None:
         L = iter([p for p in self.puntos3dT if p.visible])
         for p3d in L:
             dd = ppd / (p3d.z + dist)
             p3d.proy = (p3d.x * dd, -p3d.y * dd)
 
-    def averiguarCarasVisibles(self, verb=0):
+    def averiguarCarasVisibles(self, verb: int = 0) -> None:
         aux = self.puntos3dT
         for p in self.puntos3dT: p.visible = 0
         nc = 0
@@ -425,7 +457,7 @@ class Objeto3D:
                     print("verb:     caras %d%%" % new)
                 old = new
                 nc += 1
-            c = cc[0]
+            c = cc.lInd
             p = aux[c[1]]
             v1 = aux[c[0]] - p  # de 1 a 0
             # normaliza v1
@@ -442,68 +474,102 @@ class Objeto3D:
             v2.z /= longx
 
             if (v1 ** v2) * p > 0:  # cara invisible
-                cc[1] = 0
+                cc.visible = 0
             else:  # cara visible
-                cc[1] = 1
+                cc.visible = 1
                 for pp in c:  # marcamos puntos visibles
                     aux[pp].visible = 1
 
 
 class Punto3D:
-    def __init__(self, x, y, z):
-        if type(x) == types.FunctionType:
+    x: float
+    y: float
+    z: float
+    fx: Callable[[float], float] | None
+    fy: Callable[[float], float] | None
+    fz: Callable[[float], float] | None
+    proy: tuple[float, float]
+    visible: int
+
+    @overload
+    def __init__(self, x: Callable[[float], float], y: Callable[[float], float],
+                 z: Callable[[float], float]) -> None:
+        ...
+
+    @overload
+    def __init__(self, x: float, y: float, z: float) -> None:
+        ...
+
+    def __init__(self, x: float | Callable[[float], float], y: float | Callable[[float], float],
+                 z: float | Callable[[float], float]) -> None:
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+        self.fx = None
+        self.fy = None
+        self.fz = None
+        self.proy: tuple[float, float] = (0.0, 0.0)
+        self.visible: int = 0
+        if isinstance(x, types.FunctionType):
+            assert isinstance(y, types.FunctionType) and isinstance(z, types.FunctionType)
             self.fx = x
             self.fy = y
             self.fz = z
             self.posParametrica(0.0)
         else:
+            assert isinstance(x, (float, int)) and isinstance(y, (float, int)) and isinstance(z, (float, int))
             self.x = x
             self.y = y
             self.z = z
-            self.fx = self.fy = self.fz = None
 
-    def __add__(self, otro):
+    def __add__(self, otro: Punto3D) -> Punto3D:
         x = self.x + otro.x
         y = self.y + otro.y
         z = self.z + otro.z
         return Punto3D(x, y, z)
 
-    def __sub__(self, otro):
+    def __sub__(self, otro: Punto3D) -> Punto3D:
         x = self.x - otro.x
         y = self.y - otro.y
         z = self.z - otro.z
         return Punto3D(x, y, z)
 
-    def __pow__(self, otro):
+    def __pow__(self, otro: Punto3D) -> Punto3D:
         # <x1,y1,z1> X <x2,y2,z2> = <y1*z2 - z1*y2, z1*x2 - x1*z2, x1*y2 - y1*x2>
         x = self.y * otro.z - self.z * otro.y
         y = self.z * otro.x - self.x * otro.z
         z = self.x * otro.y - self.y * otro.x
         return Punto3D(x, y, z)
 
-    def posParametrica(self, t):
-        self.x = self.fx(t)
-        self.y = self.fy(t)
-        self.z = self.fz(t)
+    def posParametrica(self, t: float) -> None:
+        fx = self.fx
+        fy = self.fy
+        fz = self.fz
+        assert fx is not None and fy is not None and fz is not None
+        self.x = fx(t)
+        self.y = fy(t)
+        self.z = fz(t)
 
-    def __mul__(self, otro):
+    def __mul__(self, otro: Punto3D) -> float:
         return (self.x * otro.x + self.y * otro.y + self.z * otro.z)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '[%.2f %.2f %.2f]' % (self.x, self.y, self.z)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
 
 class Matriz3D:
-    def __init__(self, ini=None):
+    mat: list[list[float]]
+
+    def __init__(self, ini: list[list[float]] | None = None) -> None:
         if ini == None:
             self.mat = [[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]]
         else:
             self.mat = copy.deepcopy(ini)
 
-    def puntoVista(self, pv):
+    def puntoVista(self, pv: Punto3D) -> None:
         x, y, z = pv.x, pv.y, pv.z
         self.traslacion(-x, -y, -z)
         rho = atan2(x, z)
@@ -511,10 +577,10 @@ class Matriz3D:
         phi = atan2(y, sqrt(x * x + z * z))
         self.rotacionX(-phi)
 
-    def identidad(self):
+    def identidad(self) -> None:
         self.mat = [[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]]
 
-    def rotacionX(self, a):
+    def rotacionX(self, a: float) -> None:
         ca = cos(a)
         sa = sin(a)
         res = Matriz3D(self.mat)
@@ -530,7 +596,7 @@ class Matriz3D:
         r3[2] = m3[2] * ca - m3[1] * sa
         self.mat = res.mat
 
-    def rotacionY(self, a):
+    def rotacionY(self, a: float) -> None:
         res = Matriz3D(self.mat)
         ca = cos(a)
         sa = sin(a)
@@ -546,7 +612,7 @@ class Matriz3D:
         r3[2] = m3[0] * sa + m3[2] * ca
         self.mat = res.mat
 
-    def rotacionZ(self, a):
+    def rotacionZ(self, a: float) -> None:
         res = Matriz3D(self.mat)
         ca = cos(a)
         sa = sin(a)
@@ -562,14 +628,14 @@ class Matriz3D:
         r3[1] = m3[1] * ca - m3[0] * sa
         self.mat = res.mat
 
-    def escalado(self, x, y, z):
+    def escalado(self, x: float, y: float, z: float) -> None:
         rot = Matriz3D([[x, 0.0, 0.0, 0.0],
                         [0.0, y, 0.0, 0.0],
                         [0.0, 0.0, z, 0.0],
                         [0.0, 0.0, 0.0, 1.0]])
         self.mat = self.__mul__(rot).mat
 
-    def traslacion(self, x, y, z):
+    def traslacion(self, x: float, y: float, z: float) -> None:
         m0, m1, m2, m3 = self.mat
         m0[0] += m0[3] * x
         m0[1] += m0[3] * y
@@ -584,15 +650,15 @@ class Matriz3D:
         m3[1] += m3[3] * y
         m3[2] += m3[3] * z
 
-    def demo(self):
+    def demo(self) -> None:
         for i in [0, 1, 2, 3]:
             for j in [0, 1, 2, 3]:
                 self.mat[i][j] = float(i * 4 + j + 1)
 
-    def copia(self):
+    def copia(self) -> Matriz3D:
         return Matriz3D(self.mat)
 
-    def __str__(self):
+    def __str__(self) -> str:
         res = ''
         for i in [0, 1, 2, 3]:
             res += '|'
@@ -601,17 +667,25 @@ class Matriz3D:
             res = res + ' |\n'
         return res
 
-    def __add__(self, otro):
+    def __add__(self, otro: Matriz3D) -> Matriz3D:
         mat = Matriz3D()
         print(type(otro))
         for i in [0, 1, 2, 3]:
             for j in [0, 1, 2, 3]:
-                mat[i][j] = self.mat[i][j] + otro.mat[i][j]
+                mat.mat[i][j] = self.mat[i][j] + otro.mat[i][j]
         return mat
 
-    def __mul__(self, otro):
+    @overload
+    def __mul__(self, otro: Matriz3D) -> Matriz3D:
+        ...
+
+    @overload
+    def __mul__(self, otro: Punto3D) -> Punto3D:
+        ...
+
+    def __mul__(self, otro: Matriz3D | Punto3D) -> Matriz3D | Punto3D:
         m0, m1, m2, m3 = self.mat
-        try:
+        if isinstance(otro, Matriz3D):
             o0, o1, o2, o3 = otro.mat
             res = Matriz3D()
             r0, r1, r2, r3 = res.mat
@@ -636,25 +710,26 @@ class Matriz3D:
             r3[2] = m3[0] * o0[2] + m3[1] * o1[2] + m3[2] * o2[2] + m3[3] * o3[2]
             r3[3] = m3[0] * o0[3] + m3[1] * o1[3] + m3[2] * o2[3] + m3[3] * o3[3]
             return res
-        except:
-            x = otro.x * m0[0] + otro.y * m1[0] + otro.z * m2[0] + m3[0]
-            y = otro.x * m0[1] + otro.y * m1[1] + otro.z * m2[1] + m3[1]
-            z = otro.x * m0[2] + otro.y * m1[2] + otro.z * m2[2] + m3[2]
-            return Punto3D(x, y, z);
+
+        punto = otro
+        x = punto.x * m0[0] + punto.y * m1[0] + punto.z * m2[0] + m3[0]
+        y = punto.x * m0[1] + punto.y * m1[1] + punto.z * m2[1] + m3[1]
+        z = punto.x * m0[2] + punto.y * m1[2] + punto.z * m2[2] + m3[2]
+        return Punto3D(x, y, z)
 
 
 class Malla3D(Objeto3D):
-    def __init__(self, mat):
+    def __init__(self, mat: list[list[float]], color: str = 'black') -> None:
         fil = len(mat)
         col = len(mat[0])
-        self.lp = [Punto3D(f * 10, mat[f][c], c * 10) for f in range(fil) for c in range(col)]
+        self.lp: list[Punto3D] = [Punto3D(f * 10, mat[f][c], c * 10) for f in range(fil) for c in range(col)]
 
         # m = Matriz3D()
         # m.escalado(1,1,1)
         # m.traslacion(0,0,0)
         # self.transforma3d(m)
         # self.setup()
-        self.lc = []
+        self.lc: list[list[int]] = []
         for f in range(fil - 1):
             for c in range(col - 1):
                 # print(f,c)
@@ -663,7 +738,7 @@ class Malla3D(Objeto3D):
                 self.lc.append([p2 + 1, p + 1, p])
                 self.lc.append([p2, p2 + 1, p])
 
-        Objeto3D.__init__(self, self.lp, caras=self.lc)
+        Objeto3D.__init__(self, self.lp, caras=self.lc, color=color)
         m = Matriz3D()
         # m.escalado(1,1,1)
         # m.traslacion(0,0,0)
@@ -673,15 +748,15 @@ class Malla3D(Objeto3D):
 
 
 class Rectangulo3D(Objeto3D):
-    lp = [Punto3D(1, -1, -1), Punto3D(1, -1, 1),
-          Punto3D(1, 1, 1), Punto3D(1, 1, -1),
-          Punto3D(-1, -1, -1), Punto3D(-1, -1, 1),
-          Punto3D(-1, 1, 1), Punto3D(-1, 1, -1)]
-    lc = [[0, 1, 2, 3], [7, 6, 5, 4], [3, 2, 6, 7],
-          [0, 4, 5, 1], [1, 5, 6, 2], [0, 3, 7, 4]]
+    lp: list[Punto3D] = [Punto3D(1, -1, -1), Punto3D(1, -1, 1),
+                         Punto3D(1, 1, 1), Punto3D(1, 1, -1),
+                         Punto3D(-1, -1, -1), Punto3D(-1, -1, 1),
+                         Punto3D(-1, 1, 1), Punto3D(-1, 1, -1)]
+    lc: list[list[int]] = [[0, 1, 2, 3], [7, 6, 5, 4], [3, 2, 6, 7],
+                   [0, 4, 5, 1], [1, 5, 6, 2], [0, 3, 7, 4]]
 
-    def __init__(self, pTam, pPos):
-        Objeto3D.__init__(self, self.lp)
+    def __init__(self, pTam: Punto3D, pPos: Punto3D, color: str = 'black') -> None:
+        Objeto3D.__init__(self, self.lp, color=color)
         m = Matriz3D()
         m.escalado(pTam.x / 2, pTam.y / 2, pTam.z / 2)
         m.traslacion(pPos.x, pPos.y, pPos.z)
@@ -691,13 +766,13 @@ class Rectangulo3D(Objeto3D):
 
 
 class Piramide3D(Objeto3D):
-    lp = [Punto3D(1, -1, 1), Punto3D(1, -1, -1),
-          Punto3D(-1, -1, -1), Punto3D(-1, -1, 1),
-          Punto3D(0, 1, 0)]
-    lc = [[0, 1, 2, 3], [1, 0, 4], [2, 1, 4], [3, 2, 4], [0, 3, 4]]
+    lp: list[Punto3D] = [Punto3D(1, -1, 1), Punto3D(1, -1, -1),
+                         Punto3D(-1, -1, -1), Punto3D(-1, -1, 1),
+                         Punto3D(0, 1, 0)]
+    lc: list[list[int]] = [[0, 1, 2, 3], [1, 0, 4], [2, 1, 4], [3, 2, 4], [0, 3, 4]]
 
-    def __init__(self, pTam, pPos):
-        Objeto3D.__init__(self, self.lp)
+    def __init__(self, pTam: Punto3D, pPos: Punto3D, color: str = 'black') -> None:
+        Objeto3D.__init__(self, self.lp, color=color)
         m = Matriz3D()
         m.escalado(pTam.x / 2, pTam.y / 2, pTam.z / 2)
         m.traslacion(pPos.x, pPos.y, pPos.z)
@@ -707,8 +782,8 @@ class Piramide3D(Objeto3D):
 
 
 class Cubo3D(Rectangulo3D):
-    def __init__(self, lado, p):
-        Rectangulo3D.__init__(self, Punto3D(lado, lado, lado), p)
+    def __init__(self, lado: float, p: Punto3D, color: str = 'black') -> None:
+        Rectangulo3D.__init__(self, Punto3D(lado, lado, lado), p, color)
 
 
 if __name__ == '__main__':

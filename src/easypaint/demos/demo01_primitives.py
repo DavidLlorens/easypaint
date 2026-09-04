@@ -19,7 +19,7 @@ class State(Enum):
 class Demo1(EasyPaint):
     state: State = State.ToDelete
 
-    def on_key_press(self, keysym):
+    def on_key_press(self, keysym: str) -> None:
         if self.state == State.ToDelete:
             self.erase()
             self.create_text(250, 250, "Press any key to exit", 12)
@@ -27,11 +27,11 @@ class Demo1(EasyPaint):
         elif self.state == State.ToExit:
             self.close()
 
-    def main(self):
-        self.easypaint_configure(title='Demo 1 - Funciones predefinidas',
-                                 size=(501, 501),
+    def main(self) -> None:
+        self.easypaint_configure(title='Demo 1 - Predefined Functions',
+                                     size=(501, 501),
                                  coordinates=(0, 0, 500, 500))
-        o_ids = []
+        o_ids: list[int] = []
         # Dibuja matriz de puntos
         for x in range(25, 225, 21):
             for y in range(275, 475, 21):

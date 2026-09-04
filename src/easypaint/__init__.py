@@ -1,1 +1,1 @@
-from .easypaint import EasyPaint
+from .easypaint import EasyPaint, TVERSION

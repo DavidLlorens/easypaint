@@ -10,14 +10,21 @@ from easypaint import EasyPaint
 
 
 class Planeta:
-    def __init__(self, x, y, vx, vy, masa, color):
+    x: float
+    y: float
+    vx: float
+    vy: float
+    masa: float
+    color: str
+
+    def __init__(self, x: float, y: float, vx: float, vy: float, masa: float, color: str) -> None:
         self.x, self.y, self.vx, self.vy, self.masa, self.color = x, y, vx, vy, masa, color
 
-    def dibuja(self, ec):
+    def dibuja(self, ec: EasyPaint) -> int:
         return ec.create_circle(self.x, self.y, self.masa, self.color)
 
 
-def gravedad(p1, lp):
+def gravedad(p1: Planeta, lp: list[Planeta]) -> None:
     for p2 in lp:
         x21 = p2.x - p1.x
         y21 = p2.y - p1.y
@@ -35,19 +42,24 @@ def gravedad(p1, lp):
 
 
 class Demo2(EasyPaint):
-    planets_ids = []
-    planets = []
+    planets_ids: list[int]
+    planets: list[Planeta]
 
-    def on_key_press(self, keysym):
+    def __init__(self) -> None:
+        super().__init__()
+        self.planets_ids = []
+        self.planets = []
+
+    def on_key_press(self, keysym: str) -> None:
         self.close()
 
-    def animation(self, c):
-        old_x = []
-        old_y = []
+    def animation(self, c: int) -> None:
+        old_x: list[float] = []
+        old_y: list[float] = []
         for p in self.planets:
             old_x.append(p.x)
             old_y.append(p.y)
-        for _ in range(15):
+        for _ in range(5):
             for i in range(len(self.planets)):
                 gravedad(self.planets[i], self.planets[i + 1:])
         old_lc, self.planets_ids = self.planets_ids, []
@@ -59,10 +71,10 @@ class Demo2(EasyPaint):
         if c > 0:
             self.after(5, lambda: self.animation(c - 1))
 
-    def main(self):
-        t = 400
-        self.easypaint_configure(title='Demo 2 - Caos gravitatorio',
-                                 background='black',
+    def main(self) -> None:
+        t: int = 400
+        self.easypaint_configure(title='Demo 2 - Gravitational Chaos',
+                                     background='black',
                                  size=(600, 600),
                                  coordinates=(-t, -t, t, t))
 
@@ -74,7 +86,7 @@ class Demo2(EasyPaint):
         for p in self.planets: self.planets_ids.append(p.dibuja(self))
 
         self.create_text(0, -400, "Press any key to exit", 10, 'S', 'white')
-        self.after(0, lambda: self.animation(1000))
+        self.after(0, lambda: self.animation(2000))
 
 
 Demo2().run()
