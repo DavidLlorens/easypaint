@@ -1,4 +1,5 @@
 """
+2026/10/15 - 1-0.11 - Quitadas dos dependencias innecesarias.
 2026/09/04 - 1.0.10 - Cambia 'tkinter.Event[tkinter.Canvas]' por 'tkinter.Event' en los métodos 
                       on_mouse_release, on_mouse_button y on_mouse_motion para evitar errores 
                       de tipado en Python 3.12.
@@ -30,7 +31,7 @@ import tkinter
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Protocol, cast
 
-TVERSION = (1, 0, 10)
+TVERSION = (1, 0, 11)
 VERSION = '.'.join([str(e) for e in TVERSION])
 
 DEFAULT_CANVAS_WIDTH = 500

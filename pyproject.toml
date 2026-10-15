@@ -20,11 +20,8 @@ classifiers = [
 authors = [
     { name="David LLorens", email="dllorens@uji.es" },
 ]
-version = "1.0.10"
-dependencies = [
-    "build>=1.5.0",
-    "twine>=6.2.0",
-]
+version = "1.0.11"
+dependencies = []
 #dynamic = ["version"]
 
 [project.urls]
